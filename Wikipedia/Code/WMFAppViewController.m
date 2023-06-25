@@ -1,6 +1,7 @@
 #import "WMFAppViewController.h"
 @import WMF;
 @import SystemConfiguration;
+@import MapKit;
 #import "Wikipedia-Swift.h"
 
 #define DEBUG_THEMES 1
@@ -1176,6 +1177,12 @@ NSString *const WMFLanguageVariantAlertsLibraryVersion = @"WMFLanguageVariantAle
                 [[self placesViewController] updateViewModeToMap];
                 [[self placesViewController] showArticleURL:articleURL];
             }
+            NSString* location = activity.wmf_base64Location;
+            if (location) {
+                [[self placesViewController] updateViewModeToMap];
+                [[self placesViewController] presentSelectedLocation:location];
+            }
+            
         } break;
         case WMFUserActivityTypeContent: {
             [self dismissPresentedViewControllers];

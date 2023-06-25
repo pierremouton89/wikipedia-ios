@@ -1126,6 +1126,31 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
         viewMode = .map
     }
     
+    @objc(presentSelectedLocation:)
+    public func presentSelectedLocation(base64Location: String) {
+        guard let location = base64Location.location else {
+            return
+        }
+        let displayRegion = MKCoordinateRegion(center: location.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.40, longitudeDelta: 0.40))
+        let region = self.region(thatFits:displayRegion)
+        let name = location.name ?? "Not specified"
+    
+        let searchResult = MWKSearchResult(
+            articleID: 0,
+            revID: 0,
+            title: title,
+            displayTitle: name,
+            displayTitleHTML: name ,
+            wikidataDescription: nil,
+            extract: nil,
+            thumbnailURL: nil,
+            index: nil,
+            titleNamespace: nil,
+            location: location.mapLocation)
+        currentSearch = PlaceSearch(filter: .top, type: .location, origin: .user, sortStyle: .links, string: nil, region: region, localizedDescription: name, searchResult: searchResult, siteURL: nil)
+        
+    }
+    
     func selectArticlePlace(_ articlePlace: ArticlePlace) {
         mapView.selectAnnotation(articlePlace, animated: articlePlace.identifier != previouslySelectedArticlePlaceIdentifier)
         previouslySelectedArticlePlaceIdentifier = articlePlace.identifier
@@ -2423,5 +2448,30 @@ extension PlacesViewController {
                 return false
             }
         }
+    }
+}
+
+private extension String {
+    var location: Location? {
+        guard
+            let base64Data = Data(base64Encoded: self),
+            let location = try? JSONDecoder().decode(Location.self, from: base64Data)
+        else {
+            return nil
+        }
+        return location
+    }
+}
+
+private struct Location: Equatable, Decodable {
+    let name: String?
+    let latitude: Double
+    let longitude: Double
+    
+    var coordinate: CLLocationCoordinate2D {
+        return .init(latitude: latitude, longitude: longitude)
+    }
+    var mapLocation: CLLocation {
+        return .init(latitude: latitude, longitude: longitude)
     }
 }

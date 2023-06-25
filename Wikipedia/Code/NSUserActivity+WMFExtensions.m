@@ -1,6 +1,7 @@
 #import <WMF/NSUserActivity+WMFExtensions.h>
 #import <WMF/WMF-Swift.h>
 
+@import MapKit;
 @import CoreSpotlight;
 @import MobileCoreServices;
 
@@ -62,14 +63,24 @@ __attribute__((annotate("returns_localized_nsstring"))) static inline NSString *
 + (instancetype)wmf_placesActivityWithURL:(NSURL *)activityURL {
     NSURLComponents *components = [NSURLComponents componentsWithURL:activityURL resolvingAgainstBaseURL:NO];
     NSURL *articleURL = nil;
+    NSString* base64Location = nil;
     for (NSURLQueryItem *item in components.queryItems) {
         if ([item.name isEqualToString:@"WMFArticleURL"]) {
             NSString *articleURLString = item.value;
             articleURL = [NSURL URLWithString:articleURLString];
             break;
         }
+        if ([item.name isEqualToString:@"location"]) {
+            base64Location = item.value;
+            break;
+        }
     }
     NSUserActivity *activity = [self wmf_pageActivityWithName:@"Places"];
+    if (base64Location) {
+        NSMutableDictionary* dictionary = [NSMutableDictionary dictionaryWithDictionary:activity.userInfo];
+        [dictionary addEntriesFromDictionary:@{@"WMFLocation": base64Location}];
+        activity.userInfo = dictionary;
+    }
     activity.webpageURL = articleURL;
     return activity;
 }
@@ -262,6 +273,11 @@ __attribute__((annotate("returns_localized_nsstring"))) static inline NSString *
     } else {
         return self.webpageURL;
     }
+}
+
+- (NSString *)wmf_base64Location {
+
+    return self.userInfo[@"WMFLocation"];
 }
 
 - (NSURL *)wmf_contentURL {
