@@ -42,6 +42,9 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
     fileprivate let popoverFadeDuration = 0.25
     fileprivate let searchHistoryCountLimit = 15
     fileprivate var searchSuggestionController: PlaceSearchSuggestionController!
+    
+    private static let ZOOM_LEVEL = 20000
+    private static let CUSTOM_ANNOTATION_IDENTIFIER = "CUSTOM_IDENTIFIER"
 
     fileprivate var siteURL: URL {
         return MWKDataStore.shared().primarySiteURL ?? NSURL.wmf_URLWithDefaultSiteAndCurrentLocale()!
@@ -1131,10 +1134,7 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
     public func presentSelectedLocation(base64Location: String) {
         guard let location = base64Location.location else {
             return
-        }
-        let displayRegion = MKCoordinateRegion(center: location.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.40, longitudeDelta: 0.40))
-        let region = self.region(thatFits:displayRegion)
-        
+        }        
         let name = location.name ?? "latitude:\(location.latitude) latitude:\(location.longitude)"
         let annotation = MKPointAnnotation()
         annotation.coordinate = location.coordinate
@@ -1146,6 +1146,10 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
         customAnnotation = annotation
         mapView.addAnnotation(annotation)
         mapView.showAnnotations([annotation], animated: false)
+        let zoomRange = mapView.cameraZoomRange
+        mapView.setCameraZoomRange(.init(minCenterCoordinateDistance: 20000, maxCenterCoordinateDistance: 20000), animated: false)
+        mapView.setCameraZoomRange(zoomRange, animated: false)
+        
     }
     
     func selectArticlePlace(_ articlePlace: ArticlePlace) {
@@ -2379,9 +2383,8 @@ extension PlacesViewController: MKMapViewDelegate {
     
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
         if let annotation = annotation as? MKPointAnnotation {
-            let identifier = "CustomAnimationView"
-            guard let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) else {
-                return MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+            guard let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: Self.CUSTOM_ANNOTATION_IDENTIFIER) else {
+                return MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: Self.CUSTOM_ANNOTATION_IDENTIFIER)
             }
             annotationView.annotation = annotation
             return annotationView
