@@ -61,6 +61,7 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
     fileprivate var searching: Bool = false
     // SINGLETONTODO
     fileprivate let imageController = MWKDataStore.shared().cacheController.imageCache
+    private var customAnnotation: MKAnnotation?
 
     fileprivate var _displayCountForTopPlaces: Int?
     fileprivate var displayCountForTopPlaces: Int {
@@ -1133,23 +1134,18 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
         }
         let displayRegion = MKCoordinateRegion(center: location.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.40, longitudeDelta: 0.40))
         let region = self.region(thatFits:displayRegion)
-        let name = location.name ?? ""
-    
-        let searchResult = MWKSearchResult(
-            articleID: 0,
-            revID: 0,
-            title: title,
-            displayTitle: name,
-            displayTitleHTML: name ,
-            wikidataDescription: nil,
-            extract: nil,
-            thumbnailURL: nil,
-            index: nil,
-            titleNamespace: nil,
-            location: location.mapLocation)
-        let search = PlaceSearch(filter: .top, type: .location, origin: .user, sortStyle: .links, string: nil, region: region, localizedDescription: name, searchResult: searchResult, siteURL: nil)
-        performSearch(search)
         
+        let name = location.name ?? "latitude:\(location.latitude) latitude:\(location.longitude)"
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = location.coordinate
+        annotation.title = name
+        annotation.subtitle = "latitude:\(location.latitude) latitude:\(location.longitude)"
+        if let customAnnotation {
+            mapView.removeAnnotation(customAnnotation)
+        }
+        customAnnotation = annotation
+        mapView.addAnnotation(annotation)
+        mapView.showAnnotations([annotation], animated: false)
     }
     
     func selectArticlePlace(_ articlePlace: ArticlePlace) {
@@ -2382,6 +2378,14 @@ extension PlacesViewController: MKMapViewDelegate {
     }
     
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+        if let annotation = annotation as? MKPointAnnotation {
+            let identifier = "CustomAnimationView"
+            guard let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) else {
+                return MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+            }
+            annotationView.annotation = annotation
+            return annotationView
+        }
         guard let place = annotation as? ArticlePlace else {
             // CRASH WORKAROUND
             // The UIPopoverController that the map view presents from the default user location annotation is causing a crash. Using our own annotation view for the user location works around this issue.
